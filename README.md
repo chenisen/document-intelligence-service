@@ -11,9 +11,14 @@ Ele não decide nada de negócio, não tem interface, não guarda nada e não co
 É síncrono e sem estado de propósito: quem precisa de assincronia envolve a peça, e o desenho de quem
 envolve é diagrama na apresentação, não código daqui.
 
-**[Demo em vídeo, 1 min](docs/demo/demo.mp4)**: contrato no Swagger, atestado em PDF nativo, captura
+## Demonstração
+
+Contrato no Swagger, atestado em PDF nativo, captura
 de tela cortada, resultado indeferido, suíte e avaliação. Perfil `fake`, com os documentos
 sintéticos de `samples/`.
+
+https://github.com/user-attachments/assets/8e0a8b08-ce9b-4127-8999-bb2f6299bf0c
+
 
 ## Como rodar
 
