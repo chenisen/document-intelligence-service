@@ -1,0 +1,99 @@
+# Implantação da peça. Decidido na ADR-0003.
+#
+# Este arquivo nunca foi aplicado: não há conta. É declaração revisada em leitura, não implantação
+# comprovada. A coerência com o código — tempo limite maior que a soma dos orçamentos de
+# `adapters/aws/clients.py`, handler que existe — é cobrada em revisão de PR: a suíte testa o
+# código, não este arquivo.
+#
+# O que ele NÃO cria, de propósito: conta, VPC, sub-rede, chave KMS e papel de deploy. Isso é da
+# plataforma e entra por parâmetro. Serviço de aplicação que cria a própria rede é serviço que
+# ninguém governa.
+
+service: document-intelligence
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  # us-east-1, o padrão da AWS. Sem exigência de região, fica o padrão: ADR-0002.
+  region: ${opt:region, "us-east-1"}
+  stage: ${opt:stage, "dev"}
+  architecture: arm64
+
+  # 29 s é o teto da integração do API Gateway; passar disso faria a função continuar gastando
+  # depois de o chamador já ter recebido 504. Ver a pendência do prazo por requisição na ADR-0003.
+  timeout: 29
+  # A normalização rasteriza página e converte HEIC em memória. 2 GB também eleva a CPU alocada,
+  # que é o que encurta a parte local do p95. Calibrar com medição antes de fixar.
+  memorySize: 2048
+
+  logRetentionInDays: 90
+  versionFunctions: true
+
+  environment:
+    DIS_PROFILE: aws
+    DIS_KENDRA_INDEX_ID: ${param:kendraIndexId}
+    # Identificador do guardrail. Fica aqui, e não em `config/bedrock.json`, porque é diferente por
+    # conta; o que fica na configuração é a versão, que é governança e é a mesma depois de promovida.
+    # Sem ele o composition root recusa subir no perfil `aws`.
+    DIS_BEDROCK_GUARDRAIL_ID: ${param:guardrailId}
+    POWERTOOLS_SERVICE_NAME: document-intelligence
+    POWERTOOLS_METRICS_NAMESPACE: DocumentIntelligence
+
+  # Rede privada, sem saída para a internet. Sub-rede e security group vêm da plataforma.
+  vpc:
+    securityGroupIds:
+      - ${param:securityGroupId}
+    subnetIds: ${param:privateSubnetIds}
+
+  # Permissão mínima: exatamente as quatro chamadas que o código faz, e nada além.
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: textract:DetectDocumentText
+          Resource: "*"
+        - Effect: Allow
+          Action: bedrock:InvokeModel
+          # Duas linhas porque o modelo é chamado por perfil de inferência entre regiões: a
+          # permissão precisa cobrir o perfil e os modelos de base para onde ele roteia. Só o
+          # perfil dá AccessDenied na primeira chamada que sair da região de origem.
+          Resource:
+            - arn:aws:bedrock:${self:provider.region}:${aws:accountId}:inference-profile/${param:modelId}
+            - arn:aws:bedrock:*::foundation-model/*
+        - Effect: Allow
+          # Enviar `guardrailConfig` no `Converse` exige permissão sobre o guardrail, separada da
+          # do modelo. Sem ela a chamada falha inteira: não é degradação silenciosa, e é melhor
+          # assim — analisar documento de saúde sem política é pior do que não analisar.
+          Action: bedrock:ApplyGuardrail
+          Resource: arn:aws:bedrock:${self:provider.region}:${aws:accountId}:guardrail/${param:guardrailId}
+        - Effect: Allow
+          Action: kendra:Retrieve
+          Resource: arn:aws:kendra:${self:provider.region}:${aws:accountId}:index/${param:kendraIndexId}
+
+# Uma função por caso de uso. Hoje há um. Função nova entra como entrada nova aqui, apontando para
+# outro handler em `entrypoints/`, e não reorganiza nada: as camadas abaixo são compartilhadas.
+functions:
+  analyze:
+    description: Recebe um documento médico e devolve os campos daquele tipo, com evidência e confiança.
+    image:
+      # A imagem vem pronta, por digest, e não é construída aqui. É o que torna real a promessa de
+      # construir uma vez e promover: homologação e produção recebem exatamente os mesmos bytes.
+      # Deixar o Serverless construir reconstruiria a imagem por estágio, e "o mesmo artefato"
+      # viraria coincidência em vez de garantia.
+      uri: ${param:imageUri}
+      # O caminho do handler mora aqui, e não no CMD do Dockerfile, para a pergunta "por onde entra
+      # uma requisição" ter uma resposta só, no arquivo onde o leitor procura.
+      command:
+        - functions.analyze.handler.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/documents:analyze
+    # Concorrência reservada: o teto de gasto que não depende de o consumidor se comportar.
+    # 500 documentos por dia é pouco mais de um por minuto; 20 cobre o pico com folga larga.
+    reservedConcurrency: 20
+
+custom:
+  # Sem plugin de empacotamento Python: a imagem é construída pelo Dockerfile, e o `uv` resolve as
+  # dependências lá dentro a partir do lock. Uma ferramenta a menos para explicar.
+  esbuild: false

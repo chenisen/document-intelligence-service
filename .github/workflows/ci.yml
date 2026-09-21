@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only and no secrets: CI must run on a machine that has never seen an AWS account (RNF-07).
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --locked
+      - run: make check
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --locked
+      # Synthetic documents are a build artifact, not versioned; the generator is deterministic.
+      - run: make fixtures
+      # The whole suite plus the core coverage gate; running `make test` too would run it twice.
+      - run: make coverage
+      # Pipeline regression against the frozen baseline. Not model quality: the fakes answer from
+      # the answer key.
+      - run: make eval

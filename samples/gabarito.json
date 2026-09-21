@@ -1,0 +1,197 @@
+[
+  {
+    "arquivo": "atestado_01_pdf_nativo.pdf",
+    "tipo_documento": "atestado_medico",
+    "formato": "pdf_nativo",
+    "dificuldade": "facil",
+    "resultado_esperado": "extracao_completa",
+    "campos": {
+      "paciente_nome": "Ana Beatriz Marques da Silva",
+      "paciente_documento": "000.000.000-00",
+      "periodo_afastamento": {
+        "inicio": "14/09/2026",
+        "fim": "16/09/2026",
+        "dias": 3
+      },
+      "cid": "M54.5",
+      "medico_nome": "Helena Vasconcelos Prado",
+      "crm": {
+        "numero": "999001",
+        "uf": "SP"
+      },
+      "cnes": "9999001",
+      "data_emissao": "14/09/2026"
+    },
+    "notas": [
+      "tem camada de texto: nao deve chamar OCR"
+    ]
+  },
+  {
+    "arquivo": "atestado_02_pdf_digitalizado.pdf",
+    "tipo_documento": "atestado_medico",
+    "formato": "pdf_digitalizado",
+    "dificuldade": "media",
+    "resultado_esperado": "extracao_completa",
+    "campos": {
+      "paciente_nome": "Ana Beatriz Marques da Silva",
+      "paciente_documento": "000.000.000-00",
+      "periodo_afastamento": {
+        "inicio": "14/09/2026",
+        "fim": "16/09/2026",
+        "dias": 3
+      },
+      "cid": "M54.5",
+      "medico_nome": "Helena Vasconcelos Prado",
+      "crm": {
+        "numero": "999001",
+        "uf": "SP"
+      },
+      "cnes": "9999001",
+      "data_emissao": "14/09/2026"
+    },
+    "notas": [
+      "sem camada de texto: exige OCR",
+      "inclinacao de 1,4 grau"
+    ]
+  },
+  {
+    "arquivo": "atestado_06_captura_tela.png",
+    "tipo_documento": "atestado_medico",
+    "formato": "png_captura_tela",
+    "dificuldade": "media",
+    "resultado_esperado": "extracao_parcial",
+    "campos": {
+      "paciente_nome": "Thaís Nogueira Rebouças",
+      "paciente_documento": "000.000.000-00",
+      "periodo_afastamento": {
+        "inicio": "02/09/2026",
+        "fim": "06/09/2026",
+        "dias": 5
+      },
+      "cid": "J11",
+      "medico_nome": null,
+      "crm": null,
+      "cnes": null,
+      "data_emissao": null
+    },
+    "notas": [
+      "imagem nitida, mas o documento esta cortado",
+      "bloco do medico ausente: campos de CRM e CNES devem vir nulos"
+    ]
+  },
+  {
+    "arquivo": "atestado_07_foto.heic",
+    "tipo_documento": "atestado_medico",
+    "formato": "heic",
+    "dificuldade": "dificil",
+    "resultado_esperado": "extracao_completa",
+    "campos": {
+      "paciente_nome": "João Vítor Sampaio Rocha",
+      "paciente_documento": "000.000.000-00",
+      "periodo_afastamento": {
+        "inicio": "10/09/2026",
+        "fim": "11/09/2026",
+        "dias": 2
+      },
+      "cid": "M54",
+      "medico_nome": "Luís Otávio Mendonça Sá",
+      "crm": {
+        "numero": "999317",
+        "uf": "MG"
+      },
+      "cnes": "9999317",
+      "data_emissao": "10/09/2026"
+    },
+    "notas": [
+      "formato nao aceito pelo Textract: exige conversao no processo"
+    ]
+  },
+  {
+    "arquivo": "atestado_08_duas_paginas.pdf",
+    "tipo_documento": "atestado_medico",
+    "formato": "pdf_nativo_multipagina",
+    "dificuldade": "media",
+    "resultado_esperado": "extracao_completa",
+    "campos": {
+      "paciente_nome": "Carlos Eduardo Ferraz Lopes",
+      "paciente_documento": "000.000.000-00",
+      "periodo_afastamento": {
+        "inicio": "01/09/2026",
+        "fim": "15/09/2026",
+        "dias": 15
+      },
+      "cid": null,
+      "medico_nome": "Rogério Aparecido Tanaka",
+      "crm": {
+        "numero": "999042",
+        "uf": "SP"
+      },
+      "cnes": "9999042",
+      "data_emissao": "01/09/2026"
+    },
+    "notas": [
+      "duas paginas: a operacao sincrona do Textract le apenas uma",
+      "afastamento de 15 dias, limite do artigo 60 da Lei 8.213/91",
+      "sem CID: o campo deve vir nulo, nao inferido"
+    ]
+  },
+  {
+    "arquivo": "resultado_01_pdf_nativo.pdf",
+    "tipo_documento": "resultado_avaliacao_medica",
+    "formato": "pdf_nativo",
+    "dificuldade": "facil",
+    "resultado_esperado": "extracao_completa",
+    "campos": {
+      "protocolo": "2026-AV-0000123",
+      "requerente_nome": "Cecília Andrade Peixoto",
+      "requerente_documento": "000.000.000-00",
+      "tipo_avaliacao": "Avaliacao inicial",
+      "data_avaliacao": "09/09/2026",
+      "desfecho": "Deferido",
+      "periodo_concedido": {
+        "inicio": "09/09/2026",
+        "fim": "08/10/2026"
+      },
+      "medico_nome": "Luís Otávio Mendonça Sá",
+      "crm": {
+        "numero": "999317",
+        "uf": "MG"
+      },
+      "data_emissao": "09/09/2026",
+      "cid": null
+    },
+    "notas": [
+      "desfecho vem de campo categorico em caixa destacada",
+      "tipo de avaliacao vem de caixa marcada",
+      "nao tem CID: o campo deve vir nulo"
+    ]
+  },
+  {
+    "arquivo": "resultado_02_indeferido_digitalizado.jpg",
+    "tipo_documento": "resultado_avaliacao_medica",
+    "formato": "jpeg_digitalizado",
+    "dificuldade": "dificil",
+    "resultado_esperado": "extracao_completa",
+    "campos": {
+      "protocolo": "2026-AV-0000417",
+      "requerente_nome": "Márcio Aurélio Bezerra",
+      "requerente_documento": "000.000.000-00",
+      "tipo_avaliacao": "Prorrogacao",
+      "data_avaliacao": "16/09/2026",
+      "desfecho": "Indeferido",
+      "periodo_concedido": null,
+      "medico_nome": "Helena Vasconcelos Prado",
+      "crm": {
+        "numero": "999001",
+        "uf": "SP"
+      },
+      "data_emissao": "16/09/2026",
+      "cid": null
+    },
+    "notas": [
+      "desfecho indeferido: extrair errado inverte a decisao do fluxo",
+      "periodo concedido nao se aplica e deve vir nulo, nunca inferido",
+      "a fundamentacao e negativa, e e o texto que modelo tende a atropelar"
+    ]
+  }
+]

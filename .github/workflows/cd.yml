@@ -1,0 +1,130 @@
+name: cd
+
+# Declared, never executed: there is no AWS account behind it.
+# Build once, promote by digest: staging and production receive the same image sha256.
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+# OIDC: a short-lived role, no static access key in the repository.
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cd
+  cancel-in-progress: false # never cancel a deployment halfway
+
+env:
+  AWS_REGION: us-east-1 # ADR-0002
+  ECR_REPOSITORY: document-intelligence
+  SHA: ${{ github.event.workflow_run.head_sha }}
+
+jobs:
+  build:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.push.outputs.uri }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      # arm64 because the function runs on Graviton; QEMU runs the Dockerfile's RUN on this x86 runner.
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - name: build and push
+        id: push
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          docker buildx build --platform linux/arm64 --provenance=false --tag "$IMAGE:$SHA" --push .
+          # The digest, not the tag, travels between stages: a tag can be rewritten.
+          DIGEST=$(aws ecr describe-images --repository-name "$ECR_REPOSITORY" \
+            --image-ids imageTag="$SHA" --query 'imageDetails[0].imageDigest' --output text)
+          echo "uri=$IMAGE@$DIGEST" >> "$GITHUB_OUTPUT"
+
+  staging:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - uses: astral-sh/setup-uv@v10
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: serverless deploy
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+        run: >
+          npx --yes serverless@4 deploy --stage staging --region "$AWS_REGION"
+          --param="imageUri=${{ needs.build.outputs.image }}"
+          --param="kendraIndexId=${{ secrets.KENDRA_INDEX_ID }}"
+          --param="guardrailId=${{ secrets.BEDROCK_GUARDRAIL_ID }}"
+          --param="modelId=${{ vars.BEDROCK_MODEL_ID }}"
+          --param="securityGroupId=${{ secrets.SECURITY_GROUP_ID }}"
+          --param="privateSubnetIds=${{ secrets.PRIVATE_SUBNET_IDS }}"
+      - name: smoke test
+        run: |
+          set -euo pipefail
+          make fixtures
+          CODE=$(curl -s -o response.json -w '%{http_code}' \
+            -F file=@samples/atestado_01_pdf_nativo.pdf "${{ vars.ENDPOINT }}/v1/documents:analyze")
+          test "$CODE" = "200"
+          grep -q '"medical_certificate"' response.json
+          # Provenance must name the real model: `stub/reference-set` means the wrong profile went up.
+          ! grep -q 'stub/reference-set' response.json
+
+  production:
+    needs: [build, staging]
+    runs-on: ubuntu-latest
+    environment: production # manual approval lives in the environment's protection rules
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+      - name: guardrail version is published, never DRAFT
+        run: jq -e '.guardrail.version | test("^[1-9][0-9]*$")' config/bedrock.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - uses: astral-sh/setup-uv@v10
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: serverless deploy, same digest as staging
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+        run: >
+          npx --yes serverless@4 deploy --stage production --region "$AWS_REGION"
+          --param="imageUri=${{ needs.build.outputs.image }}"
+          --param="kendraIndexId=${{ secrets.KENDRA_INDEX_ID }}"
+          --param="guardrailId=${{ secrets.BEDROCK_GUARDRAIL_ID }}"
+          --param="modelId=${{ vars.BEDROCK_MODEL_ID }}"
+          --param="securityGroupId=${{ secrets.SECURITY_GROUP_ID }}"
+          --param="privateSubnetIds=${{ secrets.PRIVATE_SUBNET_IDS }}"
+      - name: smoke test
+        run: |
+          set -euo pipefail
+          make fixtures
+          CODE=$(curl -s -o response.json -w '%{http_code}' \
+            -F file=@samples/atestado_01_pdf_nativo.pdf "${{ vars.ENDPOINT }}/v1/documents:analyze")
+          test "$CODE" = "200"

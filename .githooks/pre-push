@@ -1,0 +1,4 @@
+#!/bin/sh
+# Runs what the CI runs before anything leaves this machine: a red push never reaches the remote.
+# Skip once, knowingly, with `git push --no-verify`.
+exec make ci
