@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itau.example/document-intelligence/v1/analysis_result.schema.json",
+  "title": "AnalysisResult",
+  "description": "What the service returns for one document. It describes the document; it decides nothing about the business.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "file_sha256",
+    "document_type",
+    "fields",
+    "validations",
+    "review",
+    "capabilities",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "description": "Version of this schema. Bumped by the rules in PRD section 9.",
+      "const": "1.1.0"
+    },
+    "file_sha256": {
+      "description": "Hash of the received file. The service keeps no copy: this is how the caller correlates and detects resubmission on its own side.",
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "document_type": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "confidence"],
+      "properties": {
+        "value": {
+          "description": "Document types supported by the registry. A new type is a new enum value, which is a minor change only because consumers must tolerate unknown values.",
+          "enum": ["medical_certificate", "medical_assessment_result"]
+        },
+        "confidence": { "$ref": "#/$defs/confidence" }
+      }
+    },
+    "fields": {
+      "description": "Extracted fields, keyed by field name. The key set depends on the document type and is documented in openapi.yaml. Keeping it a map is what lets a new document type ship without a new schema version.",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/field" }
+    },
+    "validations": {
+      "description": "Deterministic integrity rules run over the extracted fields. No model involved.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/validation" }
+    },
+    "knowledge": {
+      "description": "Internal norms retrieved for this document. Absent when enrichment is unavailable; see capabilities.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/knowledge_reference" }
+    },
+    "review": { "$ref": "#/$defs/review" },
+    "capabilities": { "$ref": "#/$defs/capabilities" },
+    "provenance": { "$ref": "#/$defs/provenance" }
+  },
+  "$defs": {
+    "confidence": {
+      "description": "Composed from OCR confidence, model confidence and the deterministic validations.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "evidence": {
+      "description": "The literal excerpt of recognised text the value came from, verified in code against the source text.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "page"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "page": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "field": {
+      "description": "One extracted field. When abstained is true, value is null and reason says why. A field is never filled by guessing and never inferred when absent from the document.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "confidence", "abstained"],
+      "properties": {
+        "value": {
+          "description": "Shape depends on the field: string, number, object or array. Null when abstained or when the field is absent from the document."
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "abstained": { "type": "boolean" },
+        "reason": {
+          "description": "Stable code explaining a null value.",
+          "type": ["string", "null"],
+          "enum": [null, "confidence_below_threshold", "invalid_evidence", "absent_from_document", "validation_failed"]
+        },
+        "evidence": {
+          "oneOf": [{ "$ref": "#/$defs/evidence" }, { "type": "null" }]
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "status"],
+      "properties": {
+        "rule": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["passed", "failed", "skipped"] },
+        "detail": { "type": ["string", "null"] }
+      }
+    },
+    "knowledge_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "version", "excerpt"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "excerpt": { "type": "string", "minLength": 1 },
+        "uri": { "type": ["string", "null"] }
+      }
+    },
+    "review": {
+      "description": "Whether the case needs a human. The service decides that a human is needed; the review itself happens in the consumer, which owns the screen and the flow.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "reasons"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "reasons": {
+          "description": "Stable codes. Field-scoped reasons carry the field after a colon, for example confidence_below_threshold:leave_period.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(confidence_below_threshold|critical_field_missing|invalid_evidence|validation_failed|uncertain_classification|guardrail_triggered|marginal_quality)(:[a-z0-9_]+)?$"
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "description": "Explicit degradation. The analysis still returns; this says what was unavailable while producing it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ocr", "extraction", "knowledge_enrichment"],
+      "properties": {
+        "ocr": { "$ref": "#/$defs/capability_state" },
+        "extraction": { "$ref": "#/$defs/capability_state" },
+        "knowledge_enrichment": { "$ref": "#/$defs/capability_state" }
+      }
+    },
+    "capability_state": { "enum": ["available", "degraded", "unavailable"] },
+    "provenance": {
+      "description": "What is needed to reproduce this analysis later from the same file.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "prompt_version", "ocr_engine", "reference_tables_version", "analysed_at"],
+      "properties": {
+        "model_id": { "type": "string", "minLength": 1 },
+        "prompt_version": { "type": "string", "minLength": 1 },
+        "ocr_engine": { "type": "string", "minLength": 1 },
+        "reference_tables_version": { "type": "string", "minLength": 1 },
+        "analysed_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

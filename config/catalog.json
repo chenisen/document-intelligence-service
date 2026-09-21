@@ -1,0 +1,67 @@
+{
+  "_arquivo": "Catálogo de tipos documentais e tabelas de valores válidos. É conteúdo, não código: tipo novo entra aqui e vale na próxima implantação de configuração, sem release do serviço. O raciocínio sobre o documento é o prompt, em `config/bedrock.json`; a norma interna é o índice, em `config/kendra.json`. Aqui ficam só as tabelas que o serviço precisa para validar e para compor a consulta ao índice.",
+  "_dono": "Gerência de Saúde Ocupacional. Um valor a mais em `outcomes` ou um código a mais em `cid_codes` é decisão de norma, não de engenharia.",
+  "_por_que_carregado_e_nao_recuperado": "Estas tabelas precisam valer em toda chamada. Se a validação de um código CID dependesse de busca no índice, uma consulta que não casasse deixaria o campo passar sem conferência, e passaria em silêncio. Recuperação é melhor esforço; validação não pode ser.",
+  "reference_tables_version": "cid10/2026-01",
+  "_reference_tables_version": "Versão das tabelas de referência, que sai na proveniência. Subir o CID-10 de revisão muda quais códigos são válidos, e sem esta linha não haveria como explicar por que o mesmo documento foi aceito em março e recusado em abril.",
+  "cid_codes": [
+    "M54.5",
+    "J11",
+    "J11.1",
+    "M54",
+    "M54.4",
+    "Z76.3"
+  ],
+  "document_types": {
+    "medical_certificate": {
+      "fields": [
+        "patient_name",
+        "patient_document",
+        "leave_period",
+        "cid",
+        "doctor_name",
+        "crm",
+        "cnes",
+        "issue_date"
+      ],
+      "critical": [
+        "leave_period",
+        "crm"
+      ],
+      "knowledge_terms": [
+        "atestado",
+        "afastamento",
+        "periodo"
+      ]
+    },
+    "medical_assessment_result": {
+      "fields": [
+        "protocol_number",
+        "requester_name",
+        "requester_document",
+        "assessment_type",
+        "assessment_date",
+        "outcome",
+        "granted_period",
+        "doctor_name",
+        "crm",
+        "issue_date",
+        "cid"
+      ],
+      "critical": [
+        "outcome"
+      ],
+      "knowledge_terms": [
+        "avaliacao",
+        "resultado",
+        "periodo"
+      ],
+      "outcomes": {
+        "deferido": "granted",
+        "indeferido": "denied"
+      },
+      "denied_outcome": "denied",
+      "protocol_pattern": "[0-9]{4}-AV-[0-9]{7}"
+    }
+  }
+}

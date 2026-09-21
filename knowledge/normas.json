@@ -1,0 +1,222 @@
+{
+  "_arquivo": "Corpus de normas internas ingerido no índice do Kendra. É a fonte do que a área publica no bucket: cada entrada vira um documento em `normas/` e um sidecar em `metadata/`, com os campos mapeados em `config/kendra.json`. Publicar norma não passa por release deste serviço, e é esse o motivo de o índice existir.",
+  "_dono": "Gerência de Saúde Ocupacional publica e revoga. Engenharia opera o índice e não edita conteúdo. Norma sem `owner` não é ingerida: sem dono não há quem responda pela citação.",
+  "_ciclo": "Toda norma tem `effective_from` e `review_by`. Passado o `review_by` sem republicação, a área é notificada e a norma continua vigente: expirar automaticamente deixaria a análise sem fundamento por esquecimento de calendário, o que é pior do que citar norma velha.",
+  "_revogacao": "Revogar é publicar com `status` revogado e remover o arquivo de `normas/`. As duas coisas, não uma: a remoção só vale na próxima sincronização, e o `AttributeFilter` declarado em `config/kendra.json` é o que fecha a janela entre uma e outra. A norma revogada continua no corpus de propósito, porque é ela que torna a regra testável.",
+  "_procedencia": "O conteúdo é próprio da instituição. A estrutura segue o que uma norma de saúde e medicina ocupacional de organização pública brasileira cobre, e nenhum texto normativo de terceiro é reproduzido aqui: citação de norma externa entra por referência, com origem e data.",
+  "normas": [
+    {
+      "id": "NI-RH-014-01",
+      "source": "Norma interna de afastamento, NI-RH-014",
+      "version": "2026-04",
+      "owner": "Gerência de Saúde Ocupacional",
+      "effective_from": "2026-04-01",
+      "status": "vigente",
+      "excerpt": "Afastamento superior a 15 dias consecutivos pelo mesmo motivo segue para o INSS a partir do 16º dia, conforme o art. 60 da Lei 8.213/91. Até o 15º dia o pagamento é responsabilidade do empregador.",
+      "keywords": [
+        "afastamento",
+        "15",
+        "dias",
+        "inss",
+        "periodo",
+        "leave"
+      ],
+      "category": "afastamento",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-RH-014/2026-04.pdf",
+      "review_by": "2027-04"
+    },
+    {
+      "id": "NI-RH-014-02",
+      "source": "Norma interna de afastamento, NI-RH-014",
+      "version": "2026-04",
+      "owner": "Gerência de Saúde Ocupacional",
+      "effective_from": "2026-04-01",
+      "status": "vigente",
+      "excerpt": "Atestado com período de afastamento superior a 3 dias exige registro no prontuário ocupacional e comunicação à área de saúde em até 2 dias úteis.",
+      "keywords": [
+        "atestado",
+        "afastamento",
+        "prontuario",
+        "saude"
+      ],
+      "category": "afastamento",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-RH-014/2026-04.pdf",
+      "review_by": "2027-04"
+    },
+    {
+      "id": "NI-RH-009-01",
+      "source": "Norma interna de afastamento, NI-RH-009",
+      "version": "2024-08",
+      "owner": "Gerência de Saúde Ocupacional",
+      "effective_from": "2024-08-01",
+      "status": "revogada",
+      "revoked_by": "NI-RH-014",
+      "excerpt": "Atestado com período de afastamento superior a 5 dias exige registro no prontuário ocupacional.",
+      "keywords": [
+        "atestado",
+        "afastamento",
+        "prontuario",
+        "saude"
+      ],
+      "_nota": "Existe de proposito: versao anterior da NI-RH-014, com regra diferente. Norma revogada nao pode ser citada numa resposta, e ha teste que prova isso.",
+      "category": "afastamento",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-RH-009/2024-08.pdf",
+      "review_by": "2025-08"
+    },
+    {
+      "id": "TAB-CID10-01",
+      "source": "Tabela de referencia CID-10, uso interno",
+      "version": "2026-01",
+      "owner": "Gerência de Saúde Ocupacional",
+      "effective_from": "2026-01-01",
+      "status": "vigente",
+      "excerpt": "Códigos do capítulo XIII, doenças do sistema osteomuscular, exigem avaliação ergonômica quando houver reincidência em 12 meses.",
+      "keywords": [
+        "cid",
+        "m54",
+        "osteomuscular",
+        "ergonomica"
+      ],
+      "category": "referencia",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/TAB-CID10/2026-01.pdf",
+      "review_by": "2027-01"
+    },
+    {
+      "id": "NI-SAU-007-01",
+      "source": "Norma de avaliação medica, NI-SAU-007",
+      "version": "2026-02",
+      "owner": "Gerência de Saúde Ocupacional",
+      "effective_from": "2026-02-01",
+      "status": "vigente",
+      "excerpt": "Resultado indeferido cabe recurso em até 10 dias corridos contados da ciência, e o protocolo original deve ser referenciado no pedido.",
+      "keywords": [
+        "indeferido",
+        "recurso",
+        "protocolo",
+        "avaliacao",
+        "denied"
+      ],
+      "category": "avaliacao-medica",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-SAU-007/2026-02.pdf",
+      "review_by": "2027-02"
+    },
+    {
+      "id": "NI-SAU-007-02",
+      "source": "Norma de avaliação medica, NI-SAU-007",
+      "version": "2026-02",
+      "owner": "Gerência de Saúde Ocupacional",
+      "effective_from": "2026-02-01",
+      "status": "vigente",
+      "excerpt": "Período concedido em resultado deferido conta a partir da data da avaliação, e a reavaliação é obrigatória ao término.",
+      "keywords": [
+        "deferido",
+        "concedido",
+        "reavaliacao",
+        "granted",
+        "periodo"
+      ],
+      "category": "avaliacao-medica",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-SAU-007/2026-02.pdf",
+      "review_by": "2027-02"
+    },
+    {
+      "id": "NI-SO-001-01",
+      "source": "Norma de saúde e medicina ocupacional, NI-SO-001",
+      "version": "2026-03",
+      "owner": "Gerência de Saúde e Segurança do Trabalho",
+      "effective_from": "2026-03-01",
+      "status": "vigente",
+      "excerpt": "O programa de controle médico de saúde ocupacional abrange exame admissional, periódico, de retorno ao trabalho, de mudança de risco ocupacional e demissional, conforme a NR-7. O atestado de saúde ocupacional registra a conclusão de apto ou inapto para a função avaliada.",
+      "keywords": [
+        "aso",
+        "ocupacional",
+        "pcmso",
+        "nr7",
+        "admissional",
+        "periodico",
+        "demissional"
+      ],
+      "category": "saude-ocupacional",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-SO-001/2026-03.pdf",
+      "review_by": "2027-03"
+    },
+    {
+      "id": "NI-SO-001-02",
+      "source": "Norma de saúde e medicina ocupacional, NI-SO-001",
+      "version": "2026-03",
+      "owner": "Gerência de Saúde e Segurança do Trabalho",
+      "effective_from": "2026-03-01",
+      "status": "vigente",
+      "excerpt": "O exame de retorno ao trabalho é obrigatório após afastamento por período igual ou superior a 30 dias por motivo de doença ou acidente, e deve ocorrer no primeiro dia do retorno.",
+      "keywords": [
+        "retorno",
+        "afastamento",
+        "30",
+        "dias",
+        "exame",
+        "obrigatorio"
+      ],
+      "category": "saude-ocupacional",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-SO-001/2026-03.pdf",
+      "review_by": "2027-03"
+    },
+    {
+      "id": "NI-RH-021-01",
+      "source": "Norma de conduta na análise de atestado, NI-RH-021",
+      "version": "2026-05",
+      "owner": "Gerência de Gestão de Pessoas",
+      "effective_from": "2026-05-01",
+      "status": "vigente",
+      "excerpt": "O atestado apresentado deve conter identificação do profissional emissor com registro no conselho, data de emissão, período de afastamento e assinatura. A ausência de qualquer um desses elementos encaminha o documento para conferência manual, e não para indeferimento automático.",
+      "keywords": [
+        "atestado",
+        "conferencia",
+        "crm",
+        "assinatura",
+        "emissao",
+        "manual"
+      ],
+      "category": "conduta-de-analise",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-RH-021/2026-05.pdf",
+      "review_by": "2027-05"
+    },
+    {
+      "id": "NI-RH-021-02",
+      "source": "Norma de conduta na análise de atestado, NI-RH-021",
+      "version": "2026-05",
+      "owner": "Gerência de Gestão de Pessoas",
+      "effective_from": "2026-05-01",
+      "status": "vigente",
+      "excerpt": "Atestado com data de emissão posterior ao início do período de afastamento é aceito quando houver justificativa registrada, e a conferência é feita por pessoa. Divergência de data não caracteriza irregularidade por si só.",
+      "keywords": [
+        "atestado",
+        "data",
+        "emissao",
+        "divergencia",
+        "justificativa"
+      ],
+      "category": "conduta-de-analise",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-RH-021/2026-05.pdf",
+      "review_by": "2027-05"
+    },
+    {
+      "id": "NI-RH-022-01",
+      "source": "Norma de conduta na análise de resultado de avaliação, NI-RH-022",
+      "version": "2026-05",
+      "owner": "Gerência de Gestão de Pessoas",
+      "effective_from": "2026-05-01",
+      "status": "vigente",
+      "excerpt": "O resultado de avaliação médica registra o desfecho determinado pelo profissional avaliador. A área de gestão de pessoas não revisa mérito clínico: cabe a ela conferir se o documento está completo e encaminhar o desfecho ao fluxo correspondente.",
+      "keywords": [
+        "resultado",
+        "avaliacao",
+        "desfecho",
+        "merito",
+        "conferencia"
+      ],
+      "category": "conduta-de-analise",
+      "uri": "s3://${DIS_KNOWLEDGE_BUCKET}/normas/NI-RH-022/2026-05.pdf",
+      "review_by": "2027-05"
+    }
+  ]
+}

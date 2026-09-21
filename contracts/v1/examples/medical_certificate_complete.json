@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.1.0",
+  "file_sha256": "3b1f8c2a9d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8",
+  "document_type": {
+    "value": "medical_certificate",
+    "confidence": 0.98
+  },
+  "fields": {
+    "patient_name": {
+      "value": "Ana Beatriz Marques da Silva",
+      "confidence": 0.97,
+      "abstained": false,
+      "reason": null,
+      "evidence": { "text": "Paciente: Ana Beatriz Marques da Silva", "page": 1 }
+    },
+    "patient_document": {
+      "value": "000.000.000-00",
+      "confidence": 0.95,
+      "abstained": false,
+      "reason": null,
+      "evidence": { "text": "CPF: 000.000.000-00", "page": 1 }
+    },
+    "leave_period": {
+      "value": { "start": "2026-09-14", "end": "2026-09-16", "days": 3 },
+      "confidence": 0.94,
+      "abstained": false,
+      "reason": null,
+      "evidence": { "text": "afastamento de 14/09/2026 a 16/09/2026, por 3 (tres) dias", "page": 1 }
+    },
+    "cid": {
+      "value": "M54.5",
+      "confidence": 0.96,
+      "abstained": false,
+      "reason": null,
+      "evidence": { "text": "CID-10: M54.5", "page": 1 }
+    },
+    "doctor_name": {
+      "value": "Helena Vasconcelos Prado",
+      "confidence": 0.93,
+      "abstained": false,
+      "reason": null,
+      "evidence": { "text": "Dra. Helena Vasconcelos Prado", "page": 1 }
+    },
+    "crm": {
+      "value": { "number": "999001", "state": "SP" },
+      "confidence": 0.91,
+      "abstained": false,
+      "reason": null,
+      "evidence": { "text": "CRM/SP 999001", "page": 1 }
+    },
+    "cnes": {
+      "value": "9999001",
+      "confidence": 0.88,
+      "abstained": false,
+      "reason": null,
+      "evidence": { "text": "CNES: 9999001", "page": 1 }
+    },
+    "issue_date": {
+      "value": "2026-09-14",
+      "confidence": 0.96,
+      "abstained": false,
+      "reason": null,
+      "evidence": { "text": "Sao Paulo, 14 de setembro de 2026", "page": 1 }
+    }
+  },
+  "validations": [
+    { "rule": "leave_period_end_not_before_start", "status": "passed", "detail": null },
+    { "rule": "leave_period_days_match_dates", "status": "passed", "detail": null },
+    { "rule": "issue_date_not_in_the_future", "status": "passed", "detail": null },
+    { "rule": "crm_format", "status": "passed", "detail": null },
+    { "rule": "cid_in_reference_table", "status": "passed", "detail": null }
+  ],
+  "knowledge": [
+    {
+      "source": "Norma interna de afastamento",
+      "version": "2026-04",
+      "excerpt": "Afastamento superior a 15 dias consecutivos segue para o INSS a partir do 16o dia.",
+      "uri": null
+    }
+  ],
+  "review": {
+    "required": false,
+    "reasons": []
+  },
+  "capabilities": {
+    "ocr": "available",
+    "extraction": "available",
+    "knowledge_enrichment": "available"
+  },
+  "provenance": {
+    "model_id": "anthropic.claude-sonnet-5",
+    "prompt_version": "medical_certificate/v3",
+    "ocr_engine": "textract/analyze-document",
+    "reference_tables_version": "cid10/2026-01",
+    "analysed_at": "2026-09-18T14:32:07Z"
+  }
+}

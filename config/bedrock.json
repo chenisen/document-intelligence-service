@@ -1,0 +1,26 @@
+{
+  "_arquivo": "Configuração do modelo. É aqui que mora o raciocínio sobre o documento: o prompt, o modelo, os parâmetros de inferência e o guardrail. Nada disto é código, e mudança aqui não pede release do serviço.",
+  "_dono": "O conteúdo dos prompts é da Gerência de Saúde Ocupacional. Os parâmetros de inferência são de Engenharia. As duas assinaturas são necessárias para promover.",
+  "_processo_de_mudanca": "PR neste arquivo, `make eval` contra a baseline, aprovação do dono, implantação de configuração em homologação, uma semana de observação da taxa de revisão, promoção para produção. Prompt não sobe junto com código: são cadências diferentes de propósito.",
+
+  "model_id": "us.anthropic.claude-opus-5",
+  "_model_id": "Perfil de inferência entre regiões, que é o que o prefixo `us.` significa. A chamada é roteada entre as regiões dos Estados Unidos, o que sustenta a cota em pico sem nenhuma linha de código. O id sem o prefixo é sob demanda numa região só e responde `ThrottlingException` antes do nosso p95 de 25 s. Trocar de modelo é mudança de configuração e passa pelo mesmo portão de avaliação que uma mudança de prompt.",
+
+  "max_tokens": 4096,
+  "temperature": 0,
+  "_inferencia": "Temperatura zero porque extração não é geração: a mesma página precisa devolver o mesmo campo em duas chamadas. Não elimina a variação do modelo, reduz. `max_tokens` em 4096 cabe o maior documento do catálogo com folga; o corte por `max_tokens` apareceria como resposta sem chamada de ferramenta, que o adapter já recusa.",
+
+  "prompt_version": "2026-09-v3",
+  "_prompt_version": "Versão do par de prompts abaixo, no formato AAAA-MM-vN. Sai na proveniência de toda resposta e é o que permite reproduzir uma análise de seis meses atrás. Qualquer edição em `classify_prompt` ou `extract_prompt` obriga a subir esta linha: prompt novo com versão velha faz a trilha mentir, e a trilha é o que a auditoria lê.",
+
+  "guardrail": {
+    "version": "3",
+    "_identificador": "O identificador não está neste arquivo porque é diferente por conta: vem de `DIS_BEDROCK_GUARDRAIL_ID`, injetado na implantação, do mesmo jeito que o índice do Kendra. A versão fica aqui porque é governança, e é a mesma em toda conta depois de promovida.",
+    "_version": "Número, nunca `DRAFT`. `DRAFT` é o rascunho mutável do console: apontar produção para ele significa que alguém muda a política sem implantação e sem registro. Homologação aponta para `DRAFT` de propósito, para a área testar a política antes de promover.",
+    "_ausencia": "Sem `DIS_BEDROCK_GUARDRAIL_ID` o adapter não envia `guardrailConfig`. Isso é aceito só no perfil `fake`; no perfil `aws` o composition root recusa subir, porque um serviço que analisa documento de saúde sem guardrail é pior do que um serviço fora do ar."
+  },
+
+  "classify_prompt": "Você recebe as páginas de um documento médico brasileiro. Identifique de qual tipo ele é, entre os tipos oferecidos na ferramenta. Se não for nenhum deles, responda com o tipo nulo. Não adivinhe: é preferível recusar a classificar errado.",
+
+  "extract_prompt": "Você recebe as páginas de um documento médico brasileiro. Extraia apenas os campos pedidos na ferramenta, exatamente como estão escritos no documento. Regras: não infira campo que não esteja escrito, devolvendo nulo nesse caso; para cada campo preenchido cite em evidence o trecho literal da página de onde ele veio e o número da página; datas em formato ISO (AAAA-MM-DD); confidence entre 0 e 1 refletindo o quanto o trecho sustenta o valor. Não opine sobre conduta clínica, prognóstico ou adequação do período. Não decida nada de negócio: não aprove, não defira, não conclua elegibilidade. Não caracterize a pessoa por gênero, idade, origem ou condição de saúde: nenhuma dessas informações muda como um campo deve ser lido."
+}

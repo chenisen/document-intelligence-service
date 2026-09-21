@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itau.example/document-intelligence/v1/problem.schema.json",
+  "title": "Problem",
+  "description": "Error body, application/problem+json per RFC 9457. The stable part for the consumer is code, never title or detail.",
+  "type": "object",
+  "required": ["type", "title", "status", "code"],
+  "properties": {
+    "type": { "type": "string" },
+    "title": { "type": "string" },
+    "status": { "type": "integer", "minimum": 400, "maximum": 599 },
+    "detail": { "type": "string" },
+    "code": {
+      "enum": [
+        "invalid_input",
+        "unsupported_document_type",
+        "document_quality_too_low",
+        "upstream_unavailable",
+        "upstream_timeout",
+        "rate_limited",
+        "internal_error"
+      ]
+    },
+    "limit_bytes": {
+      "description": "Present only when the file exceeded the size limit, so the caller can shrink it before retrying.",
+      "type": "integer"
+    }
+  }
+}

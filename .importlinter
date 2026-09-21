@@ -1,0 +1,63 @@
+[importlinter]
+root_packages =
+    core
+    usecases
+    adapters
+    entrypoints
+    functions
+    evals
+include_external_packages = True
+
+# As dependências apontam para dentro. `functions` é a camada mais externa porque é a unidade de
+# implantação: uma pasta por função do `serverless.yml`. Tudo abaixo dela é compartilhado.
+[importlinter:contract:layers]
+name = As dependencias apontam para dentro
+type = layers
+layers =
+    functions
+    entrypoints
+    adapters
+    usecases
+    core
+
+[importlinter:contract:pure-core]
+name = O nucleo nao conhece infraestrutura
+type = forbidden
+source_modules =
+    core
+forbidden_modules =
+    boto3
+    botocore
+    aws_lambda_powertools
+    pydantic
+    requests
+
+[importlinter:contract:boto3-only-in-adapters-aws]
+name = boto3 so em adapters/aws
+type = forbidden
+source_modules =
+    core
+    usecases
+    entrypoints
+    functions
+    adapters.fakes
+forbidden_modules =
+    boto3
+# O composition root e o unico lugar autorizado a nomear um adapter da AWS: e o que um composition
+# root faz. Um `import boto3` direto em qualquer uma dessas camadas continua quebrando a build.
+ignore_imports =
+    entrypoints.bootstrap -> adapters.aws.bedrock
+    entrypoints.bootstrap -> adapters.aws.kendra
+    entrypoints.bootstrap -> adapters.aws.textract
+
+[importlinter:contract:tooling-is-not-a-layer]
+name = evals e ferramental, ninguem depende dele
+type = forbidden
+source_modules =
+    core
+    usecases
+    adapters
+    entrypoints
+    functions
+forbidden_modules =
+    evals
