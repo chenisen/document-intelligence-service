@@ -11,10 +11,9 @@ Ele não decide nada de negócio, não tem interface, não guarda nada e não co
 É síncrono e sem estado de propósito: quem precisa de assincronia envolve a peça, e o desenho de quem
 envolve é diagrama na apresentação, não código daqui.
 
-![Demo: contrato no Swagger, atestado em PDF nativo, captura de tela cortada, resultado indeferido, suíte e avaliação](docs/demo/demo.gif)
-
-Perfil `fake`, com os documentos sintéticos de `samples/`. Para rever as cenas de terminal com pausa:
-`uvx asciinema play docs/demo/demo.cast`.
+**[Demo em vídeo, 1 min](docs/demo/demo.mp4)**: contrato no Swagger, atestado em PDF nativo, captura
+de tela cortada, resultado indeferido, suíte e avaliação. Perfil `fake`, com os documentos
+sintéticos de `samples/`.
 
 ## Onde mora o quê
 
