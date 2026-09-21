@@ -1,0 +1,78 @@
+{
+  "_arquivo": "Configuração do índice de normas. A forma é a da API do Kendra, para o provisionamento ser tradução e não reescrita. O repositório não provisiona: quem cria índice e fonte de dados é a esteira da plataforma. O que mora aqui e viaja na imagem é `retrieve`, que é o que o serviço usa em tempo de chamada.",
+  "_dono": "O índice é operado por Engenharia. O conteúdo é da Gerência de Saúde Ocupacional, que publica norma sem passar por release deste serviço. Essa separação é o motivo de o Kendra existir aqui.",
+
+  "index": {
+    "Name": "document-intelligence-normas",
+    "Edition": "ENTERPRISE_EDITION",
+    "_edition": "Developer Edition não tem acordo de nível de serviço e dorme sem uso. Para uma peça no caminho de uma análise, isso vira o primeiro incidente. O custo do Enterprise é fixo e conhecido, e entra no orçamento como custo de plataforma, não por chamada.",
+    "UserContextPolicy": "ATTRIBUTE_FILTER",
+    "_user_context": "Norma interna não é pública, mas também não é por pessoa: todo chamador deste serviço vê o mesmo corpus. `ATTRIBUTE_FILTER` fica declarado porque é o que permite restringir por área no dia em que uma norma for restrita, sem recriar o índice, que é operação de horas.",
+
+    "DocumentMetadataConfigurationUpdates": [
+      {
+        "Name": "status",
+        "Type": "STRING_VALUE",
+        "Search": { "Facetable": true, "Searchable": false, "Displayable": true, "Sortable": false },
+        "_para_que": "É o atributo do filtro que impede norma revogada de ser citada. `Facetable` é o que o torna filtrável; sem isso o `AttributeFilter` abaixo é recusado pela API."
+      },
+      {
+        "Name": "norm_id",
+        "Type": "STRING_VALUE",
+        "Search": { "Facetable": true, "Searchable": true, "Displayable": true, "Sortable": false }
+      },
+      {
+        "Name": "owner",
+        "Type": "STRING_VALUE",
+        "Search": { "Facetable": true, "Searchable": false, "Displayable": true, "Sortable": false }
+      },
+      {
+        "Name": "effective_from",
+        "Type": "DATE_VALUE",
+        "Search": { "Facetable": true, "Searchable": false, "Displayable": true, "Sortable": true },
+        "_para_que": "Permite excluir norma publicada com vigência futura. Uma norma aprovada hoje para valer em janeiro não pode fundamentar a análise de dezembro."
+      }
+    ],
+    "_atributos_reservados": "`_version`, `_category` e `_source_uri` já existem no índice e não se declaram aqui: são reservados do Kendra. O adapter lê `_version`, e é a ingestão que o preenche pelo mapeamento de campos abaixo. Sem ele a resposta ainda traz a origem, e a versão sai como `unknown` em vez de ser chutada.",
+
+    "CapacityUnits": { "StorageCapacityUnits": 0, "QueryCapacityUnits": 0 },
+    "_capacidade": "Zero unidades adicionais. A capacidade base do Enterprise cobre 10 mil documentos e 8 mil consultas por dia, e o corpus tem dezenas de normas e o volume do MVP é de centenas de análises por dia. Unidade adicional se compra em minutos; comprar antes de precisar é gastar por medo."
+  },
+
+  "data_source": {
+    "Name": "normas-saude-ocupacional",
+    "Type": "S3",
+    "Configuration": {
+      "S3Configuration": {
+        "BucketName": "${DIS_KNOWLEDGE_BUCKET}",
+        "InclusionPrefixes": ["normas/"],
+        "DocumentsMetadataConfiguration": { "S3Prefix": "metadata/" }
+      }
+    },
+    "Schedule": "cron(0 6 * * ? *)",
+    "_schedule": "Sincronização diária às 06h UTC, antes do expediente. Norma muda por publicação da área, não por minuto, e sincronizar de hora em hora pagaria varredura para não achar nada. Publicação urgente dispara `StartDataSourceSyncJob` à mão: existe o caminho rápido, ele só não é o padrão.",
+    "_por_que_s3_e_nao_conector": "O corpus é publicado pela área como arquivo. Conector de SharePoint ou Confluence traria autenticação, mapeamento e um modo de falha a mais para resolver um problema que o bucket já resolve. Quando a área publicar na ferramenta dela, troca-se a fonte de dados sem tocar no serviço: o `KnowledgeRetriever` não sabe de onde o documento veio.",
+
+    "FieldMappings": [
+      { "DataSourceFieldName": "status", "IndexFieldName": "status" },
+      { "DataSourceFieldName": "norm_id", "IndexFieldName": "norm_id" },
+      { "DataSourceFieldName": "owner", "IndexFieldName": "owner" },
+      { "DataSourceFieldName": "effective_from", "IndexFieldName": "effective_from", "DateFieldFormat": "yyyy-MM-dd'T'HH:mm:ss'Z'" },
+      { "DataSourceFieldName": "version", "IndexFieldName": "_version" },
+      { "DataSourceFieldName": "category", "IndexFieldName": "_category" }
+    ]
+  },
+
+  "retrieve": {
+    "PageSize": 3,
+    "_page_size": "Três trechos. A resposta cita fonte, versão e trecho, e uma lista maior não melhora o enriquecimento: vira ruído para quem revisa. O `top` do port já corta em três, e os dois números batem de propósito.",
+
+    "AttributeFilter": {
+      "AndAllFilters": [
+        { "EqualsTo": { "Key": "status", "Value": { "StringValue": "vigente" } } }
+      ]
+    },
+    "_attribute_filter": "Esta é a garantia de que norma revogada nunca é citada, e ela precisa estar na consulta. Tirar o documento do índice na revogação é o certo e não basta: entre a revogação e a próxima sincronização existe uma janela, e é nela que a norma errada fundamentaria uma decisão sobre afastamento de alguém. O filtro fecha a janela. O dublê do perfil `fake` aplica a mesma regra em memória, para ela continuar testável sem índice provisionado.",
+    "_vigencia_futura": "Norma com `effective_from` no futuro ainda não vale. O filtro por data fica de fora enquanto a publicação da área for sempre com vigência imediata; no dia em que houver publicação antecipada, entra aqui um `LessThanOrEquals` sobre `effective_from` e a regra vale sem release."
+  }
+}

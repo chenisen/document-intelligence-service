@@ -1,0 +1,86 @@
+openapi: 3.1.0
+
+info:
+  title: Document Intelligence Service
+  version: "1.1.0"
+  description: |
+    Interpreta um documento médico e devolve os campos daquele tipo, cada um com o trecho de texto
+    que o originou e um grau de confiança, mais a indicação de quando o caso precisa de revisão humana.
+
+    A peça não decide nada de negócio, não tem interface, não guarda nada e não conhece o fluxo que a
+    chama. É síncrona e sem estado por decisão, não por limitação: quem precisa de assincronia envolve
+    a peça. Ver `docs/PRD.md`, seção 3.
+
+    **A resposta é o registro.** O serviço não é fonte de consulta histórica. Quem guarda é o consumidor.
+
+servers:
+  - url: https://{host}/v1
+    description: Porta de entrada HTTP privada, com autorizador por consumidor
+    variables:
+      host:
+        default: document-intelligence.internal
+
+paths:
+  /documents:analyze:
+    post:
+      operationId: analyzeDocument
+      summary: Analisa um documento e devolve os campos extraídos
+      description: |
+        Seguro para repetição: a operação é pura e não tem efeito colateral.
+
+        Limite de 4 MB para o arquivo, validado na borda antes de qualquer processamento. O limite é
+        consequência do tempo de execução escolhido e vem no corpo do erro quando estourado.
+
+        **Campos por tipo documental.** A chave de `fields` depende do `document_type`:
+
+        - `medical_certificate`: `patient_name`, `patient_document`, `leave_period`, `cid`,
+          `doctor_name`, `crm`, `cnes`, `issue_date`
+        - `medical_assessment_result`: `protocol_number`, `requester_name`, `requester_document`,
+          `assessment_type`, `assessment_date`, `outcome`, `granted_period`, `doctor_name`, `crm`,
+          `issue_date`, `cid`
+
+        `outcome` é categórico, `granted` ou `denied`, e é o campo crítico deste tipo: extrair errado
+        inverte a decisão do fluxo. `granted_period` vem nulo quando o desfecho é `denied`, e `cid`
+        vem nulo quando o documento não o traz. Campo ausente nunca é inferido.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: |
+                    PDF, JPEG, PNG ou HEIC, até 4 MB. A extensão nunca decide a rota de leitura:
+                    quem decide é o sinal encontrado na normalização.
+            encoding:
+              file:
+                contentType: application/pdf, image/jpeg, image/png, image/heic
+      responses:
+        "200":
+          description: Documento interpretado. Pode exigir revisão humana; ver `review`.
+          content:
+            application/json:
+              schema:
+                $ref: "./analysis_result.schema.json"
+              examples:
+                medicalCertificate:
+                  $ref: "./examples/medical_certificate_complete.json"
+        "400": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "500": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+        "504": { $ref: "#/components/responses/Problem" }
+
+components:
+  responses:
+    Problem:
+      description: Erro no formato RFC 9457. O que é estável para o consumidor é `code`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "./problem.schema.json"

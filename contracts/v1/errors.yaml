@@ -1,0 +1,55 @@
+version: "1.1.0"
+
+errors:
+  - code: invalid_input
+    status: 400
+    retryable: false
+    description: >
+      Requisição malformada, campo `file` ausente, tipo de mídia não aceito, ou arquivo acima do
+      limite de 4 MB. Quando o motivo é tamanho, o corpo traz `limit_bytes`.
+    requirements: [RF-01, RF-15, RF-17, RNF-06]
+
+  - code: unsupported_document_type
+    status: 422
+    retryable: false
+    description: >
+      O documento foi lido, mas não é nenhum dos tipos suportados pelo registry. A peça recusa em vez
+      de tentar extrair campos que não existem naquele documento.
+    requirements: [RF-05]
+
+  - code: document_quality_too_low
+    status: 422
+    retryable: false
+    description: >
+      Qualidade abaixo do mínimo para leitura confiável. Recusado antes de qualquer chamada paga.
+    requirements: [RF-04]
+
+  - code: upstream_unavailable
+    status: 503
+    retryable: true
+    description: >
+      Dependência obrigatória indisponível. Só vira erro quando não há degradação possível: falha do
+      enriquecimento normativo não derruba a análise, aparece em `capabilities`.
+    requirements: [RF-16]
+
+  - code: upstream_timeout
+    status: 504
+    retryable: true
+    description: >
+      Dependência excedeu o tempo declarado. Separado de `upstream_unavailable` porque o consumidor
+      costuma esperar mais antes de repetir.
+    requirements: [RF-16]
+
+  - code: rate_limited
+    status: 429
+    retryable: true
+    description: >
+      Limite de taxa do plano de uso do consumidor, ou repasse de limitação da dependência.
+    requirements: [RF-16]
+
+  - code: internal_error
+    status: 500
+    retryable: false
+    description: >
+      Falha não prevista. Nunca carrega conteúdo do documento nem valor extraído, nem em `detail`.
+    requirements: [RF-15, RNF-04]

@@ -1,0 +1,59 @@
+[importlinter]
+root_packages =
+    core
+    usecases
+    adapters
+    entrypoints
+    functions
+    evals
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = As dependencias apontam para dentro
+type = layers
+layers =
+    functions
+    entrypoints
+    adapters
+    usecases
+    core
+
+[importlinter:contract:pure-core]
+name = O nucleo nao conhece infraestrutura
+type = forbidden
+source_modules =
+    core
+forbidden_modules =
+    boto3
+    botocore
+    aws_lambda_powertools
+    pydantic
+    requests
+
+[importlinter:contract:boto3-only-in-adapters-aws]
+name = boto3 so em adapters/aws
+type = forbidden
+source_modules =
+    core
+    usecases
+    entrypoints
+    functions
+    adapters.fakes
+forbidden_modules =
+    boto3
+ignore_imports =
+    entrypoints.bootstrap -> adapters.aws.bedrock
+    entrypoints.bootstrap -> adapters.aws.kendra
+    entrypoints.bootstrap -> adapters.aws.textract
+
+[importlinter:contract:tooling-is-not-a-layer]
+name = evals e ferramental, ninguem depende dele
+type = forbidden
+source_modules =
+    core
+    usecases
+    adapters
+    entrypoints
+    functions
+forbidden_modules =
+    evals

@@ -1,0 +1,88 @@
+{
+  "_arquivo": "Política do Bedrock Guardrails. A forma é a do `CreateGuardrail` da API, para o provisionamento ser uma tradução direta: `aws bedrock create-guardrail --cli-input-json file://config/guardrails.json`, tirando as chaves com underscore. O repositório não provisiona nada, e é de propósito: quem provisiona é a esteira da plataforma, com a conta certa e a chave certa.",
+  "_dono": "Gerência de Saúde Ocupacional escreve os tópicos negados. Engenharia opera o provisionamento. Mudar um tópico é mudar política da instituição, não configuração técnica.",
+  "_por_que_aqui_e_nao_no_kendra": "Estas são restrições que precisam valer em TODA chamada. Recuperação é melhor esforço: se a consulta não casar, o trecho não vem. Uma restrição que depende de busca por similaridade some em silêncio, e some justamente no caso estranho, que é onde ela mais importa.",
+  "_promocao": "Alteração entra em `DRAFT`, é exercitada em homologação contra o conjunto de referência, e só então vira versão numerada. `config/bedrock.json` aponta produção para o número. Versão nova nunca entra em produção no mesmo dia.",
+
+  "name": "document-intelligence-saude-ocupacional",
+  "description": "Restringe a leitura de documentos médicos à descrição do que está escrito: sem conduta clínica, sem veredito de negócio e sem inferência sobre a pessoa.",
+
+  "blockedInputMessaging": "Este conteúdo não pode ser processado por esta política.",
+  "blockedOutputMessaging": "A resposta foi bloqueada pela política de uso e enviada para revisão humana.",
+  "_mensagens_de_bloqueio": "Obrigatórias na API, e nenhuma das duas chega ao consumidor: o serviço converte a intervenção em `review.reasons = [\"guardrail_triggered\"]`. Elas são escritas sem conteúdo do documento de propósito, porque aparecem no registro do Bedrock, que fica na conta e não na nossa trilha.",
+
+  "topicsConfig": [
+    {
+      "name": "conduta_clinica",
+      "type": "DENY",
+      "definition": "Opinião, recomendação ou julgamento sobre conduta clínica, diagnóstico, prognóstico ou tratamento.",
+      "examples": [
+        "O paciente deveria ter recebido mais dias de afastamento.",
+        "O diagnóstico indicado não justifica o período solicitado.",
+        "Este quadro costuma evoluir para incapacidade permanente."
+      ]
+    },
+    {
+      "name": "veredito_de_negocio",
+      "type": "DENY",
+      "definition": "Decisão sobre aprovar, deferir, indeferir, conceder ou negar benefício, afastamento ou elegibilidade. A peça descreve o documento; quem decide é o fluxo.",
+      "examples": [
+        "O afastamento deve ser aprovado.",
+        "Recomendo o indeferimento do pedido.",
+        "O colaborador está apto a retornar."
+      ]
+    },
+    {
+      "name": "inferencia_sobre_a_pessoa",
+      "type": "DENY",
+      "definition": "Qualquer caracterização da pessoa além do que o documento declara: suspeita de fraude, juízo sobre a conduta, ou inferência a partir de gênero, idade, origem ou condição de saúde.",
+      "examples": [
+        "O padrão de afastamentos sugere abuso.",
+        "Pessoas dessa faixa etária costumam apresentar este quadro.",
+        "O documento parece adulterado."
+      ]
+    }
+  ],
+
+  "contentPolicyConfig": {
+    "filtersConfig": [
+      { "type": "HATE", "inputStrength": "HIGH", "outputStrength": "HIGH" },
+      { "type": "INSULTS", "inputStrength": "HIGH", "outputStrength": "HIGH" },
+      { "type": "SEXUAL", "inputStrength": "NONE", "outputStrength": "MEDIUM" },
+      { "type": "VIOLENCE", "inputStrength": "NONE", "outputStrength": "MEDIUM" },
+      { "type": "MISCONDUCT", "inputStrength": "NONE", "outputStrength": "HIGH" },
+      { "type": "PROMPT_ATTACK", "inputStrength": "HIGH", "outputStrength": "NONE" }
+    ],
+    "_entrada_frouxa_saida_firme": "A entrada é um documento médico que a instituição recebeu, e ele legitimamente descreve violência, lesão e conteúdo sexual: filtrar a entrada faria o serviço recusar o atestado de uma vítima. A saída é nossa e tem de ser asséptica. `PROMPT_ATTACK` é o oposto, forte na entrada, porque o documento é conteúdo não confiável entrando num prompt.",
+    "_prompt_attack_sozinho_nao_basta": "Um documento com instrução embutida continua sendo entrada hostil. A defesa que segura é estrutural, não do filtro: o modelo responde por ferramenta com schema fechado, e todo valor é conferido contra o texto reconhecido independentemente. Instrução obedecida que invente campo cai na verificação de evidência."
+  },
+
+  "wordPolicyConfig": {
+    "managedWordListsConfig": [{ "type": "PROFANITY" }],
+    "_sem_lista_propria": "Sem lista de palavras própria. Termo clínico entra em lista de bloqueio com muita facilidade, e bloquear `óbito` ou `neoplasia` quebraria a leitura do documento que mais precisa de cuidado."
+  },
+
+  "sensitiveInformationPolicyConfig": {
+    "piiEntitiesConfig": [
+      { "type": "EMAIL", "action": "ANONYMIZE" },
+      { "type": "PHONE", "action": "ANONYMIZE" },
+      { "type": "ADDRESS", "action": "ANONYMIZE" }
+    ],
+    "_o_que_nao_entra_aqui": "CPF e CRM são campos do contrato e saem na resposta: anonimizá-los aqui devolveria o documento inutilizado. O que não pode vazar é conteúdo em log e métrica, e isso é mascarado na origem, com teste que falha se aparecer. Endereço, e-mail e telefone não são campos do contrato, então anonimizar é ganho sem custo."
+  },
+
+  "contextualGroundingPolicyConfig": {
+    "_desligado": "A checagem contextual de aterramento não cobre português, e a língua que conta é a do conteúdo avaliado, não a da configuração. O aterramento é feito em código, em `core/policy.py`, procurando o trecho citado dentro do texto reconhecido por uma fonte independente do modelo. Reavaliar quando a cobertura de idioma mudar: aí passam a existir duas barreiras, e esta vira a segunda."
+  },
+
+  "crossRegionConfig": {
+    "guardrailProfileIdentifier": "us.guardrail.v1:0",
+    "_nota": "O guardrail precisa acompanhar o perfil de inferência entre regiões declarado em `bedrock.json`. Sem isto a chamada roteada para outra região perde a política, que é a falha mais silenciosa desta configuração inteira."
+  },
+
+  "tags": [
+    { "key": "servico", "value": "document-intelligence" },
+    { "key": "dado", "value": "saude-sensivel" },
+    { "key": "lgpd", "value": "art-11-inciso-ii-alinea-g" }
+  ]
+}

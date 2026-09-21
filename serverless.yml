@@ -1,0 +1,60 @@
+service: document-intelligence
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  region: ${opt:region, "us-east-1"}
+  stage: ${opt:stage, "dev"}
+  architecture: arm64
+
+  timeout: 29
+  memorySize: 2048
+
+  logRetentionInDays: 90
+  versionFunctions: true
+
+  environment:
+    DIS_PROFILE: aws
+    DIS_KENDRA_INDEX_ID: ${param:kendraIndexId}
+    DIS_BEDROCK_GUARDRAIL_ID: ${param:guardrailId}
+    POWERTOOLS_SERVICE_NAME: document-intelligence
+    POWERTOOLS_METRICS_NAMESPACE: DocumentIntelligence
+
+  vpc:
+    securityGroupIds:
+      - ${param:securityGroupId}
+    subnetIds: ${param:privateSubnetIds}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: textract:DetectDocumentText
+          Resource: "*"
+        - Effect: Allow
+          Action: bedrock:InvokeModel
+          Resource:
+            - arn:aws:bedrock:${self:provider.region}:${aws:accountId}:inference-profile/${param:modelId}
+            - arn:aws:bedrock:*::foundation-model/*
+        - Effect: Allow
+          Action: bedrock:ApplyGuardrail
+          Resource: arn:aws:bedrock:${self:provider.region}:${aws:accountId}:guardrail/${param:guardrailId}
+        - Effect: Allow
+          Action: kendra:Retrieve
+          Resource: arn:aws:kendra:${self:provider.region}:${aws:accountId}:index/${param:kendraIndexId}
+
+functions:
+  analyze:
+    description: Recebe um documento médico e devolve os campos daquele tipo, com evidência e confiança.
+    image:
+      uri: ${param:imageUri}
+      command:
+        - functions.analyze.handler.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/documents:analyze
+    reservedConcurrency: 20
+
+custom:
+  esbuild: false
