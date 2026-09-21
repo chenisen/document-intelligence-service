@@ -11,10 +11,27 @@ Ele não decide nada de negócio, não tem interface, não guarda nada e não co
 É síncrono e sem estado de propósito: quem precisa de assincronia envolve a peça, e o desenho de quem
 envolve é diagrama na apresentação, não código daqui.
 
-![Demo: contrato no Swagger, atestado em PDF nativo, captura de tela cortada, resultado indeferido, suíte e avaliação](docs/demo/demo.gif)
+**[Demo em vídeo, 1 min](docs/demo/demo.mp4)**: contrato no Swagger, atestado em PDF nativo, captura
+de tela cortada, resultado indeferido, suíte e avaliação. Perfil `fake`, com os documentos
+sintéticos de `samples/`.
 
-Perfil `fake`, com os documentos sintéticos de `samples/`. Para rever as cenas de terminal com pausa:
-`uvx asciinema play docs/demo/demo.cast`.
+## Como rodar
+
+Requer apenas o [uv](https://docs.astral.sh/uv/getting-started/installation/), que instala o Python
+3.12 do projeto.
+
+```bash
+make install      # dependências, conjunto de referência e o hook que roda `make ci` antes de cada push
+make ci           # lint, tipos, camadas, testes e cobertura, sem AWS e sem credencial
+make demo         # analisa um atestado e imprime a resposta
+make serve        # sobe a API com Swagger em http://127.0.0.1:8000/docs
+make eval         # regressão sintética nos 7 casos contra a baseline, com relatório
+```
+
+`make help` lista todos os alvos. O perfil padrão é `fake` e não custa nada. `DIS_PROFILE=aws` exige
+conta, um índice do Kendra em `DIS_KENDRA_INDEX_ID`, um guardrail em `DIS_BEDROCK_GUARDRAIL_ID` e
+gasta dinheiro. Faltando qualquer um dos dois o serviço **recusa subir**: análise sem índice deixa
+de ser fundamentada em norma, e análise sem guardrail é pior do que indisponibilidade.
 
 ## Onde mora o quê
 
@@ -100,59 +117,6 @@ se o código Python e o catálogo publicado discordarem.
 Mesmo pipeline, mesma saída, sem subir servidor: `make analisar FILE=<caminho>`. Existe para a
 demonstração e para depurar um documento sem Swagger.
 
-## Arquitetura, em uma tela
-
-```
-serverless.yml          uma função por caso de uso. Hoje: analyze
-  └─ Dockerfile         imagem, construída do uv.lock
-       └─ src/
-            entrypoints/   http, lambda, cli, composition root   ← conhece tudo
-            adapters/      aws/ e fakes/                         ← conhece usecases e core
-            usecases/   caso de uso e ports                   ← conhece core
-            core/          regras puras                          ← não conhece ninguém
-```
-
-**As dependências apontam para dentro, e quem cobra é o `import-linter` no CI, não o revisor.** Regra
-que só está escrita não é cumprida.
-
-### Como isso escala num time
-
-A camada é a unidade de posse, e as três frentes abaixo não se tocam — cada uma tem um teste que a
-prova sem depender das outras.
-
-| Frente | Mexe em | Prova sozinha com |
-| --- | --- | --- |
-| Regra de negócio | `core/` | teste unitário, sem rede e sem dublê de nuvem |
-| Integração com serviço | `adapters/aws/` | `botocore.Stubber` |
-| Borda e contrato | `entrypoints/`, `contracts/v1/` | teste de contrato contra o schema publicado |
-
-Uma quarta frente não mexe em código nenhum. Quem cuida dela não abre o repositório de código
-para trabalhar:
-
-| Arquivo | O que decide | Quem é dono |
-| --- | --- | --- |
-| `config/catalog.json` | tipos documentais, campos, tabelas de valores válidos | Saúde Ocupacional |
-| `config/bedrock.json` | modelo, prompts, versão de prompt, versão do guardrail | Saúde Ocupacional e Engenharia |
-| `config/guardrails.json` | a política que o Bedrock aplica, na forma do `CreateGuardrail` | Saúde Ocupacional |
-| `config/kendra.json` | índice, fonte de dados, e o filtro que exclui norma revogada | Engenharia |
-| `knowledge/normas.json` | o corpus ingerido no índice | Saúde Ocupacional |
-
-Identificador de recurso não está em nenhum deles: índice do Kendra e guardrail variam por conta e
-entram por variável de ambiente na implantação. O que fica em configuração é a governança — a
-versão do guardrail, o filtro da consulta — que é a mesma em toda conta depois de promovida.
-
-### Como cresce
-
-| O que muda | O que se faz |
-| --- | --- |
-| Tipo documental novo | entrada em `config/catalog.json`, mais uma versão de contrato pelo nome do tipo |
-| Função nova | entrada em `functions:` no `serverless.yml`, apontando para outro handler em `entrypoints/`. As camadas abaixo são compartilhadas e não se reorganizam |
-| Provedor de OCR, modelo ou conhecimento | adapter novo atrás do port que já existe. O domínio não sabe que trocou |
-| Norma nova ou revisada | ingestão no índice. Nenhuma release do serviço |
-
-O que **não** cresce por adição: contrato publicado e política de retenção. Os dois são decisão, e
-mudam por ADR.
-
 ## Por onde começar a ler
 
 Três caminhos, conforme o tempo disponível.
@@ -183,21 +147,6 @@ sem estado) e `contracts/v1/openapi.yaml` (o contrato, que é o produto).
 | `config/` | catálogo de tipos e configuração do modelo: o conteúdo que não é código |
 | `knowledge/` | o corpus de normas que seria ingerido no Kendra, com dono, versão e vigência |
 | `samples/` | o gerador do conjunto de referência e o gabarito. Os documentos são artefatos de build, reconstruídos com `make fixtures` |
-
-## Como rodar
-
-```bash
-make install      # dependências, conjunto de referência e o hook que roda `make ci` antes de cada push
-make ci           # lint, tipos, camadas, testes e cobertura, sem AWS e sem credencial
-make demo         # analisa um atestado e imprime a resposta
-make serve        # sobe a API com Swagger em http://127.0.0.1:8000/docs
-make eval         # regressão sintética nos 7 casos contra a baseline, com relatório
-```
-
-`make help` lista todos os alvos. O perfil padrão é `fake` e não custa nada. `DIS_PROFILE=aws` exige
-conta, um índice do Kendra em `DIS_KENDRA_INDEX_ID`, um guardrail em `DIS_BEDROCK_GUARDRAIL_ID` e
-gasta dinheiro. Faltando qualquer um dos dois o serviço **recusa subir**: análise sem índice deixa
-de ser fundamentada em norma, e análise sem guardrail é pior do que indisponibilidade.
 
 ## Aviso sobre os documentos em `samples/`
 
